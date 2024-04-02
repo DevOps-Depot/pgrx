@@ -10,6 +10,14 @@ pub(crate) mod pg12 {
 #[cfg(all(feature = "pg12", docsrs))]
 pub(crate) mod pg12;
 
+#[cfg(all(feature = "gp7", not(docsrs)))]
+pub(crate) mod gp7 {
+    #![allow(clippy::all)]
+    include!(concat!(env!("OUT_DIR"), "/gp7.rs"));
+}
+#[cfg(all(feature = "gp7", docsrs))]
+pub(crate) mod gp7;
+
 #[cfg(all(feature = "pg13", not(docsrs)))]
 pub(crate) mod pg13 {
     #![allow(clippy::all)]
@@ -53,6 +61,8 @@ pub use pg14::*;
 pub use pg15::*;
 #[cfg(feature = "pg16")]
 pub use pg16::*;
+#[cfg(feature = "gp7")]
+pub use gp7::*;
 
 // feature gate each pg-specific oid module
 #[cfg(all(feature = "pg12", not(docsrs)))]
@@ -90,6 +100,13 @@ mod pg16_oids {
 #[cfg(all(feature = "pg16", docsrs))]
 mod pg16_oids;
 
+#[cfg(all(feature = "gp7", not(docsrs)))]
+mod gp7_oids {
+    include!(concat!(env!("OUT_DIR"), "/gp7_oids.rs"));
+}
+#[cfg(all(feature = "gp7", docsrs))]
+mod gp7_oids;
+
 // export that module publicly
 #[cfg(feature = "pg12")]
 pub use pg12_oids::*;
@@ -101,6 +118,8 @@ pub use pg14_oids::*;
 pub use pg15_oids::*;
 #[cfg(feature = "pg16")]
 pub use pg16_oids::*;
+#[cfg(feature = "gp7")]
+pub use gp7_oids::*;
 
 mod internal {
     //!
@@ -122,6 +141,43 @@ mod internal {
             heap_relation: crate::Relation,
             index_relation: crate::Relation,
             index_info: *mut crate::pg12::IndexInfo,
+            build_callback: crate::IndexBuildCallback,
+            build_callback_state: *mut T,
+        ) {
+            let heap_relation_ref = heap_relation.as_ref().unwrap();
+            let table_am = heap_relation_ref.rd_tableam.as_ref().unwrap();
+
+            table_am.index_build_range_scan.unwrap()(
+                heap_relation,
+                index_relation,
+                index_info,
+                true,
+                false,
+                true,
+                0,
+                crate::InvalidBlockNumber,
+                build_callback,
+                build_callback_state as *mut std::os::raw::c_void,
+                std::ptr::null_mut(),
+            );
+        }
+    }
+
+    #[cfg(feature = "gp7")]
+    pub(crate) mod gp7 {
+        pub use crate::gp7::AllocSetContextCreateInternal as AllocSetContextCreateExtended;
+        pub type QueryCompletion = std::os::raw::c_char;
+
+        pub const QTW_EXAMINE_RTES: u32 = crate::gp7::QTW_EXAMINE_RTES_BEFORE;
+
+        /// # Safety
+        ///
+        /// This function wraps Postgres' internal `IndexBuildHeapScan` method, and therefore, is
+        /// inherently unsafe
+        pub unsafe fn IndexBuildHeapScan<T>(
+            heap_relation: crate::Relation,
+            index_relation: crate::Relation,
+            index_info: *mut crate::gp7::IndexInfo,
             build_callback: crate::IndexBuildCallback,
             build_callback_state: *mut T,
         ) {
@@ -304,3 +360,6 @@ pub use internal::pg15::*;
 
 #[cfg(feature = "pg16")]
 pub use internal::pg16::*;
+
+#[cfg(feature = "gp7")]
+pub use internal::gp7::*;

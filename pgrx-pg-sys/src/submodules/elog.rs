@@ -10,6 +10,9 @@
 //! Access to Postgres' logging system
 
 /// Postgres' various logging levels
+///
+
+
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Ord, PartialOrd, PartialEq, Eq)]
 pub enum PgLogLevel {
@@ -432,7 +435,11 @@ macro_rules! check_for_interrupts {
         #[allow(unused_unsafe)]
         unsafe {
             if $crate::InterruptPending != 0 {
+                #[cfg(not(feature = "gp7"))]
                 $crate::ProcessInterrupts();
+
+                #[cfg(feature = "gp7")]
+                $crate::ProcessInterrupts(std::ptr::null(),0);
             }
         }
     };

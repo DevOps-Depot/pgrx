@@ -79,7 +79,8 @@ impl BackgroundWorker {
             feature = "pg13",
             feature = "pg14",
             feature = "pg15",
-            feature = "pg16"
+            feature = "pg16",
+        feature = "gp7",
         ))]
         const LEN: usize = 96;
 
@@ -195,6 +196,7 @@ impl BackgroundWorker {
         unsafe {
             #[cfg(any(
                 feature = "pg12",
+            feature = "gp7",
                 feature = "pg13",
                 feature = "pg14",
                 feature = "pg15",
@@ -621,6 +623,7 @@ impl<'a> From<&'a BackgroundWorkerBuilder> for pg_sys::BackgroundWorker {
     fn from(builder: &'a BackgroundWorkerBuilder) -> Self {
         #[cfg(any(
             feature = "pg12",
+            feature = "gp7",
             feature = "pg13",
             feature = "pg14",
             feature = "pg15",
@@ -640,6 +643,8 @@ impl<'a> From<&'a BackgroundWorkerBuilder> for pg_sys::BackgroundWorker {
             bgw_main_arg: builder.bgw_main_arg,
             bgw_extra: RpgffiChar128::from(&builder.bgw_extra[..]).0,
             bgw_notify_pid: builder.bgw_notify_pid,
+            #[cfg(feature = "gp7")]
+            bgw_start_rule: None
         };
 
         bgw
@@ -663,6 +668,7 @@ fn wait_latch(timeout: libc::c_long, wakeup_flags: WLflags) -> i32 {
 
 #[cfg(any(
     feature = "pg12",
+    feature = "gp7",
     feature = "pg13",
     feature = "pg14",
     feature = "pg15",

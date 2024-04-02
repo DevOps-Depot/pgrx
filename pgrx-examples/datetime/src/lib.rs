@@ -31,7 +31,7 @@ fn to_iso_string(tsz: TimestampWithTimeZone) -> String {
 /// EDT         | 2023-05-19T12:38:06.343021-04:00
 /// UTC         | 2023-05-19T16:38:06.343021+00:00
 /// ```
-#[cfg(not(any(feature = "pg12")))]
+#[cfg(not(any(feature = "pg12", feature = "gp7")))]
 #[pg_extern(name = "to_iso_string", immutable, parallel_safe)]
 fn to_iso_string_at_timezone(
     tsz: TimestampWithTimeZone,
@@ -166,34 +166,3 @@ fn set_timezone(ts: Timestamp, timezone: String) -> Result<Timestamp, DateTimeCo
     tsz.at_timezone(timezone)
 }
 
-/// ```sql
-/// datetime=# begin; select pg_sleep(10); select * from all_times();
-/// BEGIN
-/// Time: 0.261 ms
-/// -[ RECORD 1 ]
-/// pg_sleep |
-///
-/// Time: 10010.623 ms (00:10.011)
-/// -[ RECORD 1 ]---------+------------------------------
-/// now                   | 2023-05-19 12:45:51.032427-04
-/// transaction_timestamp | 2023-05-19 12:45:51.032427-04
-/// statement_timestamp   | 2023-05-19 12:46:01.047298-04
-/// clock_timestamp       | 2023-05-19 12:46:01.047415-04
-/// ```
-#[pg_extern]
-fn all_times() -> TableIterator<
-    'static,
-    (
-        name!(now, TimestampWithTimeZone),
-        name!(transaction_timestamp, TimestampWithTimeZone),
-        name!(statement_timestamp, TimestampWithTimeZone),
-        name!(clock_timestamp, TimestampWithTimeZone),
-    ),
-> {
-    TableIterator::new(std::iter::once((
-        now(),
-        transaction_timestamp(),
-        statement_timestamp(),
-        clock_timestamp(),
-    )))
-}

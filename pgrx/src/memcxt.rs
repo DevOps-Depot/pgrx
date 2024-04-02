@@ -19,7 +19,7 @@ use crate::pg_sys;
 use crate::pg_sys::AsPgCStr;
 use core::ptr;
 use std::fmt::Debug;
-use std::ptr::NonNull;
+use std::ptr::{NonNull, null};
 
 /// A shorter type name for a `*const std::os::raw::c_void`
 #[allow(non_camel_case_types)]
@@ -186,7 +186,12 @@ impl Drop for OwnedMemoryContext {
             if ptr::eq(pg_sys::CurrentMemoryContext, self.owned) {
                 pg_sys::CurrentMemoryContext = self.previous;
             }
+
+            #[cfg(not(feature = "gp7"))]
             pg_sys::MemoryContextDelete(self.owned);
+
+            #[cfg(feature = "gp7")]
+            pg_sys::MemoryContextDeleteImpl(self.owned, null(),null(),0);
         }
     }
 }
@@ -394,7 +399,11 @@ impl PgMemoryContexts {
                 let result = PgMemoryContexts::exec_in_context(context, f);
 
                 unsafe {
+                    #[cfg(not(feature = "gp7"))]
                     pg_sys::MemoryContextDelete(context);
+
+                    #[cfg(feature = "gp7")]
+                    pg_sys::MemoryContextDeleteImpl(context, null(),null(),0);
                 }
 
                 result

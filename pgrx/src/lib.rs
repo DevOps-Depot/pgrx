@@ -235,11 +235,12 @@ macro_rules! pg_magic_func {
         pub extern "C" fn Pg_magic_func() -> &'static ::pgrx::pg_sys::Pg_magic_struct {
             static MY_MAGIC: ::pgrx::pg_sys::Pg_magic_struct = ::pgrx::pg_sys::Pg_magic_struct {
                 len: ::core::mem::size_of::<::pgrx::pg_sys::Pg_magic_struct>() as i32,
-                version: ::pgrx::pg_sys::PG_VERSION_NUM as i32 / 100,
+                //version: ::pgrx::pg_sys::PG_VERSION_NUM as i32 / 100,
+                version: 70012 as i32 / 100,
                 funcmaxargs: ::pgrx::pg_sys::FUNC_MAX_ARGS as i32,
                 indexmaxkeys: ::pgrx::pg_sys::INDEX_MAX_KEYS as i32,
                 namedatalen: ::pgrx::pg_sys::NAMEDATALEN as i32,
-                #[cfg(feature = "pg12")]
+                #[cfg(any(feature = "pg12", feature = "gp7"))]
                 float4byval: ::pgrx::pg_sys::USE_FLOAT4_BYVAL as i32,
                 float8byval: cfg!(target_pointer_width = "64") as i32,
                 #[cfg(any(feature = "pg15", feature = "pg16"))]
@@ -255,6 +256,8 @@ macro_rules! pg_magic_func {
                     }
                     abi
                 },
+                #[cfg(feature = "gp7")]
+                product: 2180,  /* 'GPDB' cast to an integer */
             };
 
             // since Postgres calls this first, register our panic handler now

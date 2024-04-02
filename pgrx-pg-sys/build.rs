@@ -10,9 +10,7 @@
 use bindgen::callbacks::{DeriveTrait, ImplementsTrait, MacroParsingBehavior};
 use bindgen::NonCopyUnionStyle;
 use eyre::{eyre, WrapErr};
-use pgrx_pg_config::{
-    is_supported_major_version, prefix_path, PgConfig, PgConfigSelector, Pgrx, SUPPORTED_VERSIONS,
-};
+use pgrx_pg_config::{is_supported_major_version, prefix_path, PgConfig, PgConfigSelector, Pgrx, SUPPORTED_VERSIONS, PgVersion, PgMinorVersion};
 use quote::{quote, ToTokens};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -96,6 +94,7 @@ fn main() -> eyre::Result<()> {
     if env_tracked("DOCS_RS").as_deref() == Some("1") {
         return Ok(());
     }
+    //println!("debug");
 
     // dump the environment for debugging if asked
     if env_tracked("PGRX_BUILD_VERBOSE").as_deref() == Some("true") {
@@ -139,9 +138,17 @@ fn main() -> eyre::Result<()> {
         let mut found = Vec::new();
         for pgver in SUPPORTED_VERSIONS() {
             if env_tracked(&format!("CARGO_FEATURE_PG{}", pgver.major)).is_some() {
-                found.push(pgver);
+                    found.push(pgver);
             }
+
         }
+
+        if env_tracked(&format!("CARGO_FEATURE_GP7")).is_some() {
+            let mut gpver = PgVersion::new(12, PgMinorVersion::Latest, None);
+            gpver.isGP = true;
+            found.push(gpver);
+        }
+
         let found_ver = match &found[..] {
             [ver] => ver,
             [] => {
@@ -178,6 +185,12 @@ fn main() -> eyre::Result<()> {
             vec![(found_ver.major, specific)]
         }
     };
+
+    let gpver =  match env_tracked(&format!("CARGO_FEATURE_GP7")) {
+        Some(v) => Some(7),
+        None => None
+    };
+
     std::thread::scope(|scope| {
         // This is pretty much either always 1 (normally) or 5 (for releases),
         // but in the future if we ever have way more, we should consider
@@ -186,7 +199,7 @@ fn main() -> eyre::Result<()> {
             .iter()
             .map(|(pg_major_ver, pg_config)| {
                 scope.spawn(|| {
-                    generate_bindings(*pg_major_ver, pg_config, &build_paths, is_for_release)
+                    generate_bindings(*pg_major_ver, pg_config, &build_paths, is_for_release, gpver)
                 })
             })
             .collect::<Vec<_>>();
@@ -246,10 +259,14 @@ fn generate_bindings(
     pg_config: &PgConfig,
     build_paths: &BuildPaths,
     is_for_release: bool,
+    gp_version: Option<u16>,
 ) -> eyre::Result<()> {
     let mut include_h = build_paths.manifest_dir.clone();
     include_h.push("include");
-    include_h.push(format!("pg{major_version}.h"));
+    match gp_version {
+        None => include_h.push(format!("pg{major_version}.h")),
+        Some(v) => include_h.push(format!("gp{v}.h"))
+    };
 
     let bindgen_output = get_bindings(major_version, pg_config, &include_h)
         .wrap_err_with(|| format!("bindgen failed for pg{major_version}"))?;
@@ -266,7 +283,10 @@ fn generate_bindings(
     };
     for dest_dir in dest_dirs {
         let mut bindings_file = dest_dir.clone();
-        bindings_file.push(&format!("pg{major_version}.rs"));
+        match gp_version {
+            None => bindings_file.push(&format!("pg{major_version}.rs")),
+            Some(v) => bindings_file.push(&format!("gp{v}.rs")),
+        }
         write_rs_file(
             rewritten_items.clone(),
             &bindings_file,
@@ -285,7 +305,11 @@ fn generate_bindings(
         })?;
 
         let mut oids_file = dest_dir.clone();
-        oids_file.push(&format!("pg{major_version}_oids.rs"));
+        match gp_version {
+            None => oids_file.push(&format!("pg{major_version}_oids.rs")),
+            Some(v) => oids_file.push(&format!("gp{v}_oids.rs")),
+        };
+
         write_rs_file(oids.clone(), &oids_file, quote! {}, is_for_release).wrap_err_with(|| {
             format!(
                 "Unable to write oids file for pg{} to `{}`",

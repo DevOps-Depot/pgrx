@@ -91,16 +91,18 @@ pub struct PgVersion {
     pub major: u16,
     pub minor: PgMinorVersion,
     pub url: Option<Url>,
+    pub isGP: bool,
 }
 
 impl PgVersion {
     pub const fn new(major: u16, minor: PgMinorVersion, url: Option<Url>) -> PgVersion {
-        PgVersion { major, minor, url }
+        PgVersion { major, minor, url , isGP: false}
     }
 
     pub fn minor(&self) -> Option<u16> {
         self.minor.version()
     }
+
 }
 
 impl Display for PgVersion {
@@ -663,6 +665,7 @@ pub fn SUPPORTED_VERSIONS() -> Vec<PgVersion> {
         PgVersion::new(14, PgMinorVersion::Latest, None),
         PgVersion::new(15, PgMinorVersion::Latest, None),
         PgVersion::new(16, PgMinorVersion::Latest, None),
+        //PgVersion::new(7, PgMinorVersion::Latest, None),
     ]
 }
 

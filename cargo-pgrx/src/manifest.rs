@@ -112,11 +112,13 @@ pub(crate) fn modify_features_for_version(
 
         // no matter what, we need the postgres version we determined to be included in the
         // set of features to compile with
-        if !features.features.contains(pg_version.label()) {
+        let isGP= true;
+        if !features.features.contains(pg_version.label()) && !isGP{
             features.features.push(pg_version.label().clone());
         }
     }
 }
+
 
 pub(crate) fn pg_config_and_version(
     pgrx: &Pgrx,

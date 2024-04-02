@@ -17,6 +17,7 @@ use core::{ops::DerefMut, slice, str};
 /// The caller asserts the specified `ptr` really is a non-null, palloc'd [`pg_sys::varlena`] pointer
 /// that is aligned to 4 bytes.
 #[inline(always)]
+#[cfg(not(feature="gp7"))]
 pub unsafe fn set_varsize_4b(ptr: *mut pg_sys::varlena, len: i32) {
     // #define SET_VARSIZE_4B(PTR,len) \
     // 	(((varattrib_4b *) (PTR))->va_4byte.va_header = (((uint32) (len)) << 2))
@@ -25,7 +26,25 @@ pub unsafe fn set_varsize_4b(ptr: *mut pg_sys::varlena, len: i32) {
     let header = &mut (*ptr.cast::<pg_sys::varattrib_4b>()).va_4byte.deref_mut().va_header;
     // Using core::ptr::write(), which never calls drop(), to prevent
     // automatically dropping a field of a ManuallyDrop<T>
+
     core::ptr::write(header, (len as u32) << 2u32)
+
+}
+
+#[cfg(feature="gp7")]
+#[inline(always)]
+pub unsafe fn set_varsize_4b(ptr: *mut pg_sys::varlena, len: i32) {
+    // #define SET_VARSIZE_4B(PTR,len) \
+    // 	(((varattrib_4b *) (PTR))->va_4byte.va_header = (((uint32) (len)) << 2))
+
+    // SAFETY:  A varlena can be safely cast to a varattrib_4b
+    let header = &mut (*ptr.cast::<pg_sys::varattrib_4b>()).va_4byte.deref_mut().va_header;
+    // Using core::ptr::write(), which never calls drop(), to prevent
+    // automatically dropping a field of a ManuallyDrop<T>
+
+    let len_be = (len as u32 & 0x3FFFFFFFu32).to_be();
+    // htonl( (len) & 0x3FFFFFFF ))
+    core::ptr::write(header, len_be);
 }
 
 /// # Safety
@@ -112,9 +131,23 @@ pub unsafe fn vartag_size(tag: pg_sys::vartag_external) -> usize {
 
 #[allow(clippy::cast_ptr_alignment)]
 #[inline]
+#[cfg(feature="gp7")]
 pub unsafe fn varsize_4b(ptr: *const pg_sys::varlena) -> usize {
     let va4b = ptr as *const pg_sys::varattrib_4b__bindgen_ty_1; // 4byte
-    (((*va4b).va_header >> 2) & 0x3FFF_FFFF) as usize
+
+
+    u32::from_be(((*va4b).va_header ) & 0x3FFF_FFFF) as usize
+}
+
+#[allow(clippy::cast_ptr_alignment)]
+#[inline]
+#[cfg(not(feature="gp7"))]
+pub unsafe fn varsize_4b(ptr: *const pg_sys::varlena) -> usize {
+    let va4b = ptr as *const pg_sys::varattrib_4b__bindgen_ty_1; // 4byte
+
+
+    ((*va4b).va_header >> 2) & 0x3FFF_FFFF as usize
+
 }
 
 /// ```c
