@@ -187,7 +187,7 @@ fn main() -> eyre::Result<()> {
     };
 
     let gpver =  match env_tracked(&format!("CARGO_FEATURE_GP7")) {
-        Some(v) => Some(7),
+        Some(_) => Some(7),
         None => None
     };
 

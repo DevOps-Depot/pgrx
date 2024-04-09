@@ -133,7 +133,8 @@ pub unsafe fn MemoryContextIsValid(context: crate::MemoryContext) -> bool {
         }
 }
 
-pub const VARHDRSZ_EXTERNAL: usize = offset_of!(super::varattrib_1b_e, va_data);
+// pub const VARHDRSZ_EXTERNAL: usize = offset_of!(super::varattrib_1b_e, va_data);
+pub const VARHDRSZ_EXTERNAL: usize = 4;
 pub const VARHDRSZ_SHORT: usize = offset_of!(super::varattrib_1b, va_data);
 
 #[inline]

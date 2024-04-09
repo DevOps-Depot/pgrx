@@ -87,6 +87,7 @@ impl Aggregate for IntegerAvgState {
         arg: Self::Args,
         _fcinfo: pg_sys::FunctionCallInfo,
     ) -> Self::State {
+        info!("state");
         Self::state(current, arg)
     }
 
@@ -109,6 +110,7 @@ impl Aggregate for IntegerAvgState {
         _direct_args: Self::OrderedSetArgs,
         _fcinfo: pgrx::pg_sys::FunctionCallInfo,
     ) -> Self::Finalize {
+        info!("in finalize");
         Self::finalize(current)
     }
 

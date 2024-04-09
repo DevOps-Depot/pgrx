@@ -87,6 +87,7 @@ impl PgMinorVersion {
 }
 
 #[derive(Clone, Debug)]
+#[allow(non_snake_case)]
 pub struct PgVersion {
     pub major: u16,
     pub minor: PgMinorVersion,
@@ -604,6 +605,9 @@ impl Pgrx {
                 return Ok(pg_config.clone());
             }
         }
+        if label == "gp7" {
+            return Ok(PgConfig::from_path())
+        }
         Err(eyre!("Postgres `{label}` is not managed by pgrx"))
     }
 
@@ -698,6 +702,49 @@ pub fn createdb(
         } else {
             pg_config.port()?.to_string()
         })
+        .arg(dbname)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let command_str = format!("{command:?}");
+
+    let child = command.spawn().wrap_err_with(|| {
+        format!("Failed to spawn process for creating database using command: '{command_str}': ")
+    })?;
+
+    let output = child.wait_with_output().wrap_err_with(|| {
+        format!(
+            "failed waiting for spawned process to create database using command: '{command_str}': "
+        )
+    })?;
+
+    if !output.status.success() {
+        return Err(eyre!(
+            "problem running createdb: {}\n\n{}{}",
+            command_str,
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap()
+        ));
+    }
+
+    Ok(true)
+}
+
+pub fn createdb_gp(
+    pg_config: &PgConfig,
+    dbname: &str,
+    _is_test: bool,
+    if_not_exists: bool,
+) -> eyre::Result<bool> {
+    if if_not_exists && does_db_exist(pg_config, dbname)? {
+        return Ok(false);
+    }
+
+    println!("{} database {}", "     Creating".bold().green(), dbname);
+    let mut command = Command::new(pg_config.createdb_path()?);
+    command
+        .env_remove("PGDATABASE")
+        .env_remove("PGUSER")
         .arg(dbname)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

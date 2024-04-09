@@ -21,6 +21,7 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use pgrx_pg_sys::log;
 
 struct PallocdVarlena {
     ptr: *mut pg_sys::varlena,
@@ -129,11 +130,12 @@ where
     /// ```
     pub fn new() -> Self {
         let size_of = std::mem::size_of::<T>();
-
+        log!("size of is {}", size_of);
         let ptr = unsafe { pg_sys::palloc0(pg_sys::VARHDRSZ + size_of) as *mut pg_sys::varlena };
 
         // safe: ptr will halready be allocated
         unsafe {
+
             if size_of + pg_sys::VARHDRSZ_SHORT <= pg_sys::VARATT_SHORT_MAX as usize {
                 // we can use the short header size
                 set_varsize_short(ptr, (size_of + pg_sys::VARHDRSZ_SHORT) as i32);
@@ -389,6 +391,7 @@ where
 
     let size = serialized.len();
     let varlena = serialized.into_char_ptr();
+    log!("size of is {}", size);
     unsafe {
         set_varsize_4b(varlena as *mut pg_sys::varlena, size as i32);
     }

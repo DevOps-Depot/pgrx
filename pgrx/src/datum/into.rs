@@ -16,6 +16,7 @@ use crate::{pg_sys, rust_regtypein, set_varsize_4b, PgBox, PgOid, WhoAllocated};
 use core::fmt::Display;
 use pgrx_pg_sys::panic::ErrorReportable;
 use std::{any::Any, ptr::addr_of_mut};
+use pgrx_pg_sys::log;
 
 /// Convert a Rust type into a `pg_sys::Datum`.
 ///
@@ -374,6 +375,7 @@ impl<'a> IntoDatum for &'a [u8] {
             // for a Postgres varlena, since it's limited to 32bits -- in reality it's about half
             // that length, but this is good enough
             debug_assert!(len < (u32::MAX as usize >> 2));
+            log!("size of is {}", len);
             set_varsize_4b(varlena, len as i32);
 
             // SAFETY: src and dest pointers are valid, exactly `self.len()` bytes long,

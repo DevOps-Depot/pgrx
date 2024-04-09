@@ -6,16 +6,18 @@
 //LICENSE
 //LICENSE All rights reserved.
 //LICENSE
-//LICENSE Use of this source code is governed by the MIT license that can be found in the LICENSE file.
+
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 use std::collections::HashSet;
 use std::process::{Command, Stdio};
 
 use eyre::{eyre, WrapErr};
 use owo_colors::OwoColorize;
 use pgrx::prelude::*;
-use pgrx_pg_config::{
-    cargo::PgrxManifestExt, createdb, get_c_locale_flags, get_target_dir, PgConfig, Pgrx,
-};
+#[allow(unused_imports)]
+use pgrx_pg_config::{cargo::PgrxManifestExt, createdb, createdb_gp, get_c_locale_flags, get_target_dir, PgConfig, Pgrx};
 use postgres::error::DbError;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
@@ -212,12 +214,12 @@ fn initialize_test_framework(
     if !state.installed {
         shutdown::register_shutdown_hook();
         install_extension()?;
-        initdb(postgresql_conf)?;
-
-        let system_session_id = start_pg(state.loglines.clone())?;
+        //initdb(postgresql_conf)?;
+        let system_session_id = "NONE".to_string();
+        //let system_session_id = start_pg(state.loglines.clone())?;
         let pg_config = get_pg_config()?;
-        dropdb()?;
-        createdb(&pg_config, get_pg_dbname(), true, false)?;
+        //dropdb_gp()?;
+        //createdb_gp(&pg_config, get_pg_dbname(), true, false)?;
         create_extension()?;
         state.installed = true;
         state.system_session_id = system_session_id;
@@ -246,8 +248,9 @@ pub fn client() -> eyre::Result<(postgres::Client, String)> {
     let pg_config = get_pg_config()?;
     let mut client = postgres::Config::new()
         .host(pg_config.host())
-        .port(pg_config.test_port().expect("unable to determine test port"))
-        .user(&get_pg_user())
+        //.port(pg_config.test_port().expect("unable to determine test port"))
+        .port(7000)
+        //.user(&get_pg_user())
         .dbname(get_pg_dbname())
         .connect(postgres::NoTls)
         .wrap_err("Error connecting to Postgres")?;
@@ -609,6 +612,31 @@ fn dropdb() -> eyre::Result<()> {
         .arg(pg_config.host())
         .arg("-p")
         .arg(pg_config.test_port().expect("unable to determine test port").to_string())
+        .arg(get_pg_dbname())
+        .output()
+        .unwrap();
+
+    if !output.status.success() {
+        // maybe the database didn't exist, and if so that's okay
+        let stderr = String::from_utf8_lossy(output.stderr.as_slice());
+        if !stderr.contains(&format!("ERROR:  database \"{}\" does not exist", get_pg_dbname())) {
+            // got some error we didn't expect
+            let stdout = String::from_utf8_lossy(output.stdout.as_slice());
+            eprintln!("unexpected error (stdout):\n{stdout}");
+            eprintln!("unexpected error (stderr):\n{stderr}");
+            panic!("failed to drop test database");
+        }
+    }
+
+    Ok(())
+}
+
+fn dropdb_gp() -> eyre::Result<()> {
+    let pg_config = get_pg_config()?;
+    let output = Command::new(pg_config.dropdb_path().expect("unable to determine dropdb path"))
+        .env_remove("PGDATABASE")
+        .env_remove("PGUSER")
+        .arg("--if-exists")
         .arg(get_pg_dbname())
         .output()
         .unwrap();

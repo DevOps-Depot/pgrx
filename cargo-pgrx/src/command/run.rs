@@ -121,15 +121,16 @@ pub(crate) fn run(
     )?;
 
     // restart postgres
-    start_postgres(pg_config)?;
-
-    // create the named database
-    if !createdb(pg_config, dbname, false, true)? {
-        println!("{} existing database {}", "    Re-using".bold().cyan(), dbname);
+    if !features.features.contains(&String::from("gp7")) {
+        start_postgres(pg_config)?;
+        // create the named database
+        if !createdb(pg_config, dbname, false, true)? {
+            println!("{} existing database {}", "    Re-using".bold().cyan(), dbname);
+        }
+        exec_psql(pg_config, dbname, pgcli)
+    } else  {
+        exec_gpsql(pg_config, dbname, pgcli)
     }
-
-    // run psql
-    exec_psql(pg_config, dbname, pgcli)
 }
 
 #[cfg(unix)]
@@ -148,6 +149,21 @@ pub(crate) fn exec_psql(pg_config: &PgConfig, dbname: &str, pgcli: bool) -> eyre
         .arg(pg_config.host())
         .arg("-p")
         .arg(pg_config.port()?.to_string())
+        .arg(dbname);
+
+    // we'll never return from here as we've now become psql
+    panic!("{}", command.exec());
+}
+
+#[cfg(unix)]
+pub(crate) fn exec_gpsql(pg_config: &PgConfig, dbname: &str, pgcli: bool) -> eyre::Result<()> {
+    use std::os::unix::process::CommandExt;
+    let mut command = Command::new(match pgcli {
+        false => pg_config.psql_path()?.into_os_string(),
+        true => "pgcli".to_string().into(),
+    });
+    command
+        .env_remove("PGDATABASE")
         .arg(dbname);
 
     // we'll never return from here as we've now become psql

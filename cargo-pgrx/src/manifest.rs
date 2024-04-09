@@ -165,6 +165,12 @@ pub(crate) fn pg_config_and_version(
             }
         }
 
+        if let Some(f) = user_features.as_ref(){
+            if f.features.contains(&String::from("gp7")){
+                return Some(PgVersionSource::FeatureFlag("gp7".into()));
+            }
+
+        }
         // we cannot determine the Postgres version the user wants to use
         None
     };
