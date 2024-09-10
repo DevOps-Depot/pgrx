@@ -179,7 +179,7 @@ impl<'a> PgHeapTuple<'a, AllocatedByPostgres> {
     /// Consumes a `[PgHeapTuple]` considered to be allocated by Postgres and transforms it into one
     /// that is considered allocated by Rust.  This is accomplished by copying the underlying [pg_sys::HeapTupleData].
     pub fn into_owned(self) -> PgHeapTuple<'a, AllocatedByRust> {
-        let copy = unsafe { pg_sys::heap_copytuple(self.tuple.into_pg()) };
+        let copy = unsafe { pg_sys::heaptuple_copy_to(self.tuple.into_pg(), std::ptr::null_mut(), std::ptr::null_mut()) };
         PgHeapTuple {
             tuple: unsafe { PgBox::<pg_sys::HeapTupleData, AllocatedByRust>::from_rust(copy) },
             tupdesc: self.tupdesc,
