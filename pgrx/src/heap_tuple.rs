@@ -234,8 +234,7 @@ impl<'a> PgHeapTuple<'a, AllocatedByRust> {
                 let mut is_null = vec![true; natts];
 
                 let heap_tuple =
-                    pg_sys::heap_form_tuple(tuple_desc.as_ptr(), datums, is_null.as_mut_ptr());
-
+                    pg_sys::heaptuple_form_to(tuple_desc.as_ptr(), datums, is_null.as_mut_ptr(), std::ptr::null_mut(), std::ptr::null_mut());
                 Ok(PgHeapTuple {
                     tuple: PgBox::<pg_sys::HeapTupleData, AllocatedByRust>::from_rust(heap_tuple),
                     tupdesc: tuple_desc,
@@ -278,8 +277,7 @@ impl<'a> PgHeapTuple<'a, AllocatedByRust> {
 
         unsafe {
             let formed_tuple =
-                pg_sys::heap_form_tuple(tupdesc.as_ptr(), datums.as_mut_ptr(), nulls.as_mut_ptr());
-
+                pg_sys::heaptuple_form_to(tupdesc.as_ptr(), datums.as_mut_ptr(), nulls.as_mut_ptr(), std::ptr::null_mut(), std::ptr::null_mut());
             Ok(Self {
                 tuple: PgBox::<pg_sys::HeapTupleData, AllocatedByRust>::from_rust(formed_tuple),
                 tupdesc,
