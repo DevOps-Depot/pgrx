@@ -20,6 +20,7 @@ use crate::pg_sys::AsPgCStr;
 use core::ptr;
 use std::fmt::Debug;
 use std::ptr::NonNull;
+use std::ffi::CString;
 
 /// A shorter type name for a `*const std::os::raw::c_void`
 #[allow(non_camel_case_types)]
