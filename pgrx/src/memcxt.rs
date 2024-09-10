@@ -186,7 +186,7 @@ impl Drop for OwnedMemoryContext {
             if ptr::eq(pg_sys::CurrentMemoryContext, self.owned) {
                 pg_sys::CurrentMemoryContext = self.previous;
             }
-            pg_sys::MemoryContextDeleteImpl(self.owned, file!(), "drop", line!());
+            pg_sys::MemoryContextDeleteImpl(self.owned, file!().as_ptr() as *const i8, "drop", line!() as i32);
         }
     }
 }
@@ -397,7 +397,7 @@ impl PgMemoryContexts {
                 let result = PgMemoryContexts::exec_in_context(context, f);
 
                 unsafe {
-                    pg_sys::MemoryContextDeleteImpl(context, file!(), "switch_to", line!());
+                    pg_sys::MemoryContextDeleteImpl(context, file!().as_ptr() as *const i8, "switch_to", line!() as i32);
                 }
 
                 result
