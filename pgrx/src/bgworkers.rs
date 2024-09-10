@@ -654,7 +654,7 @@ fn wait_latch(timeout: libc::c_long, wakeup_flags: WLflags) -> i32 {
             pg_sys::PG_WAIT_EXTENSION,
         );
         pg_sys::ResetLatch(pg_sys::MyLatch);
-        pg_sys::check_for_interrupts!(file!().as_ptr() as *const i8, line!() as i32);
+        pg_sys::ProcessInterrupts(file!().as_ptr() as *const i8, line!() as i32);
 
         latch
     }
