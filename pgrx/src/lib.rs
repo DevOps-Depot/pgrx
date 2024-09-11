@@ -238,7 +238,7 @@ macro_rules! pg_magic_func {
                 indexmaxkeys: pgrx::pg_sys::INDEX_MAX_KEYS as i32,
                 namedatalen: pgrx::pg_sys::NAMEDATALEN as i32,
                 float8byval: cfg!(target_pointer_width = "64") as i32,
-                product: b"CloudberryDB\0" as *const u8 as *const i8, // Changed product to CloudberryDB
+                product: 0,  // Placeholder value for CloudberryDB product
             };
 
             #[cfg(any(feature = "pg15", feature = "pg16"))]
