@@ -443,25 +443,11 @@ pub fn interrupt_pending() -> bool {
 #[macro_export]
 macro_rules! check_for_interrupts {
     () => {
-        #[cfg(any(feature = "pg11"))]
-        #[allow(unused_unsafe)]
-        unsafe {
-            if $crate::InterruptPending {
-                $crate::ProcessInterrupts();
-            }
-        }
-
-        #[cfg(any(
-            feature = "pg12",
-            feature = "pg13",
-            feature = "pg14",
-            feature = "pg15",
-            feature = "pg16"
-        ))]
+        #[cfg(any(feature = "pg14"))]
         #[allow(unused_unsafe)]
         unsafe {
             if $crate::InterruptPending != 0 {
-                $crate::ProcessInterrupts();
+                $crate::ProcessInterrupts(file!().as_ptr() as *const i8, line!() as i32);
             }
         }
     };
