@@ -438,18 +438,31 @@ pub fn interrupt_pending() -> bool {
     }
 }
 
-/// If an interrupt is pending (perhaps a user-initiated "cancel query" message to this backend),
-/// this will safely abort the current transaction
-#[macro_export]
-macro_rules! check_for_interrupts {
-    () => {
-        #[cfg(any(feature = "pg14"))]
-        #[allow(unused_unsafe)]
-        unsafe {
-            if $crate::InterruptPending != 0 {
-                $crate::ProcessInterrupts(file!().as_ptr() as *const u8 as *const i8, line!() as i32);
+// /// If an interrupt is pending (perhaps a user-initiated "cancel query" message to this backend),
+// /// this will safely abort the current transaction
+// #[macro_export]
+// macro_rules! check_for_interrupts {
+//     () => {
+//         #[cfg(any(feature = "pg11"))]
+//         #[allow(unused_unsafe)]
+//         unsafe {
+//             if $crate::InterruptPending {
+//                 $crate::ProcessInterrupts();
+//             }
+//         }
 
-            }
-        }
-    };
-}
+//         #[cfg(any(
+//             feature = "pg12",
+//             feature = "pg13",
+//             feature = "pg14",
+//             feature = "pg15",
+//             feature = "pg16"
+//         ))]
+//         #[allow(unused_unsafe)]
+//         unsafe {
+//             if $crate::InterruptPending != 0 {
+//                 $crate::ProcessInterrupts();
+//             }
+//         }
+//     };
+// }
